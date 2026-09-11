@@ -1,0 +1,24 @@
+{
+  "name": "amap-react",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "test": "node --test tests/data.test.js tests/persistence.test.js",
+    "test:browser": "node tests/browser.cjs",
+    "test:accessibility": "node tests/accessibility.cjs",
+    "test:performance": "node tests/performance.cjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router": "^7.13.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^7.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+import AccessibilityControls from './AccessibilityControls.jsx';
+import {useEffect} from 'react';
+import {Link,Outlet,useLocation} from 'react-router';
+import {Wordmark} from './Sidebar.jsx';
+import {ThemeButton} from './Topbar.jsx';
+export default function PublicLayout(){const {pathname}=useLocation();useEffect(()=>{document.title=({'/':'AMAP — Apply for public services','/login':'Sign in — AMAP','/register':'Create an account — AMAP','/track':'Track an application — AMAP'}[pathname]||'AMAP');},[pathname]);return <><a className="skip-link" href="#main-content">Skip to main content</a><header className="site-header"><nav className="site-nav" aria-label="Public navigation"><Wordmark/><div className="public-links"><Link to="/#services">Services</Link><Link to="/track">Track application</Link><Link to="/login">Sign in</Link></div><AccessibilityControls/><ThemeButton/></nav></header><main id="main-content"><Outlet/></main><footer className="site-footer"><div className="footer-in"><p><b>AMAP — Government Services Portal · Academic Prototype</b></p><p className="mt-2">Dhruva Datta Vishnubhotla · Somana Divya Sai · Ayusha Das</p><p className="text-sm mt-1">Under the guidance of Dr. R. Sateesh Kumar</p><p className="text-xs mt-3">Demonstration services, fees and documents. This project is not an official government service.</p></div></footer></>;}

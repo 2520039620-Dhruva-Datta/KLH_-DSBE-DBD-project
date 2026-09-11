@@ -1,0 +1,9 @@
+UI.run(async()=>{
+  const user=await Auth.guard(['citizen']);if(!user)return;
+  await Shell.mount({title:'Your applications, all together.',subtitle:'Search your records, follow progress, and find your next step.',eyebrow:'My applications',actions:'<button class="btn" id="export-applications">'+Icons('download')+'Export CSV</button><a class="btn primary" href="citizen-apply.html">'+Icons('plus')+'New application</a>'});
+  const [departments,apps]=await Promise.all([API.departments.list(),API.applications.list({})]);let filtered=[];
+  UI.$('#page').innerHTML='<section class="card"><div class="filters">'+UI.field('Search applications','search','search',new URLSearchParams(location.search).get('q')||'','placeholder="Reference or service"')+UI.select('Status','status',Views.statuses,'','All statuses')+UI.select('Department','department',departments,'','All departments')+UI.select('Sort by','sort',[{id:'newest',name:'Newest first'},{id:'oldest',name:'Oldest first'},{id:'service',name:'Service name'},{id:'sla',name:'Closest to timeline'}],'newest',null)+'</div><div id="applications-table"></div></section>';
+  function render(){const q=UI.$('#search').value.toLowerCase(),status=UI.$('#status').value,d=UI.$('#department').value;filtered=Views.sort(apps.filter(a=>(!q||[a.reference,a.service_name].some(t=>t.toLowerCase().includes(q)))&&(!status||a.status===status)&&(!d||a.department_id===Number(d))),UI.$('#sort').value);UI.table('#applications-table',Views.columns('citizen'),filtered,{caption:'My applications',pageSize:10,emptyTitle:'No applications here yet',emptyMessage:'Try another filter, or start a new application.'});}
+  UI.$$('.filters input,.filters select').forEach(n=>n.addEventListener(n.tagName==='INPUT'?'input':'change',render));UI.$('#export-applications').onclick=()=>UI.csv('my-applications',filtered,Views.exportColumns);render();
+});
+

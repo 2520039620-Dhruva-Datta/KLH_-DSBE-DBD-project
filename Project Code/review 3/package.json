@@ -1,0 +1,29 @@
+{
+  "name": "amap-government-services-portal",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AMAP academic prototype: React portal demo with a retained Express/MySQL application",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "workspaces": ["react"],
+  "scripts": {
+    "setup:local": "node scripts/local-db.cjs setup",
+    "db:start": "node scripts/local-db.cjs start",
+    "db:stop": "node scripts/local-db.cjs stop",
+    "db:migrate": "node scripts/migrate.cjs",
+    "start": "node server/index.cjs",
+    "dev": "npm --workspace amap-react run dev",
+    "dev:backend": "node scripts/local-db.cjs start && node server/index.cjs",
+    "build": "npm --workspace amap-react run build",
+    "preview": "npm --workspace amap-react run preview",
+    "test:react": "npm --workspace amap-react test",
+    "demo": "node scripts/serve.cjs",
+    "test": "node tests/live-api.test.cjs && node tests/live-browser.test.cjs",
+    "test:demo": "node tests/store.test.cjs && node tests/browser.test.cjs"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.24.4"
+  }
+}
