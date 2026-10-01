@@ -1,0 +1,2 @@
+import {useLayoutEffect,useState} from 'react';
+export default function useResizeObserver(ref) {const [size,setSize]=useState({width:400,height:240});useLayoutEffect(()=>{const node=ref.current;if(!node)return;const update=()=>{const {width,height}=node.getBoundingClientRect();if(width>0)setSize(s=>s.width===width&&s.height===height?s:{width,height});};update();const observer=new ResizeObserver(update);observer.observe(node);return()=>observer.disconnect();},[ref]);return size;}

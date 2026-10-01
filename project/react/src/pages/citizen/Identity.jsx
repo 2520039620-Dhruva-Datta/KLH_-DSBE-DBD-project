@@ -1,0 +1,47 @@
+import {useState} from 'react';
+import {Link,useLocation} from 'react-router';
+import API from '../../data/api.js';
+import useApi from '../../hooks/useApi.js';
+import Icon from '../../components/Icon.jsx';
+import {Alert,ApiState,Badge,Button,ButtonLink,Card,Details,EmptyState,Field,PageHead,Table,useConfirm} from '../../components/ui/index.jsx';
+import CameraVerification,{LivenessCell} from '../../components/CameraVerification.jsx';
+import {useLanguage} from '../../context/LanguageContext.jsx';
+import {fmtDate} from '../../lib/format.js';
+
+const tabs=[['/identity','Overview','shield'],['/identity/face','Face Verification','scanFace'],['/identity/history','Verification History','clock'],['/identity/privacy','Consent & Privacy','lock'],['/identity/appointments','Assisted Verification','calendar']];
+const tips=[['sun','Face a window or lamp','Even light on your face works best; avoid a bright light behind you.'],['scanFace','Keep your face in the oval','Remove sunglasses or masks. Only one face should be inside the oval; people in the background are fine.'],['clock','Follow the countdown','Each step gives you three seconds to move, then holds still for a moment.'],['eye','Blink when the eye appears','During the blink step, blink fully two or three times while the eye animation plays.']];
+
+export default function Identity(){
+  const {t}=useLanguage(),{pathname}=useLocation(),confirm=useConfirm(),[dob,setDob]=useState(''),[session,setSession]=useState(null),[result,setResult]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const state=useApi(()=>API.identity('GET','/overview'),[]),history=useApi(()=>API.identity('GET','/history'),[]),consents=useApi(()=>API.identity('GET','/consents'),[]);
+  async function start(){setBusy(true);setError('');setResult(null);try{setSession(await API.identity('POST','/sessions',{kind:'ENROLLMENT',dob}));}catch(e){setError(e.message);}finally{setBusy(false);}}
+  async function revoke(){if(!await confirm({title:t('Remove your face template?'),message:t('Face recovery will stop working until you enroll again. Audit history is retained.'),confirmLabel:t('Remove template'),danger:true}))return;try{await API.identity('DELETE','/consents/face');}catch(e){setError(e.message);}}
+  const o=state.data,verified=o?.profile?.status==='VERIFIED',tab=pathname.endsWith('/history')?'history':pathname.endsWith('/privacy')?'privacy':pathname.endsWith('/face')?'face':'overview';
+
+  const enrollment=<Card title={t(o?.face_enrolled?'Re-enroll your face':'Enroll your face')} subtitle={session?undefined:t('About a minute. Short camera steps, including a blink check.')}>{session?<CameraVerification initial={session} onCancel={()=>setSession(null)} onComplete={r=>{setResult(r);setSession(null);}}/>:<>
+    <p className="mb-5">{t('Use only a synthetic test identity in this academic installation. Confirm your password first; re-enrollment also requires MFA when enabled.')}</p>
+    <Alert>{t('Sensitive changes need a recent password confirmation.')} <Link to="/security">{t('Confirm password in Security')}</Link></Alert>
+    <div className="mt-5"><Field label={t('Synthetic date of birth')} type="date" value={dob} max={new Date().toISOString().slice(0,10)} onChange={e=>setDob(e.target.value)} required hint={t('Used only for the broad age-consistency check.')}/></div>
+    <Button busy={busy} disabled={!dob} onClick={start} icon="scanFace" className="btn-lg">{t('Start face enrollment')}</Button>
+  </>}</Card>;
+
+  return <>
+    <PageHead eyebrow={t('Identity & security')} title={t('Digital Identity')} lead={t('Manage your linked sandbox identity, face enrollment and privacy.')}><Link className="btn btn-outline" to="/recover-identity"><Icon name="fingerprint" size={17}/>{t('Recover Aadhaar / identity')}</Link></PageHead>
+    <ApiState state={state}>{o&&<section className="identity-hero" aria-label={t('Identity status')}>
+      <span className={'identity-seal'+(verified?' is-verified':'')}><Icon name={verified?'userCheck':'fingerprint'}/></span>
+      <div><h2>{verified?t('Your sandbox identity is verified'):t('Your identity is not verified yet')}</h2><p>{o.profile?.masked_identity?<>{t('Synthetic Aadhaar')} <span className="masked-id">{o.profile.masked_identity}</span></>:t('Enroll your face to link a synthetic identity to this account.')}</p>
+        <div className="identity-facts"><span className={'identity-fact '+(o.face_enrolled?'is-ok':'is-off')}><Icon name={o.face_enrolled?'checkCircle':'xCircle'}/>{t(o.face_enrolled?'Face enrolled':'Face not enrolled')}</span><span className={'identity-fact '+(o.mfa_enabled?'is-ok':'is-off')}><Icon name={o.mfa_enabled?'checkCircle':'xCircle'}/>{t(o.mfa_enabled?'MFA enabled':'MFA not enabled')}</span>{o.profile?.last_verified_at&&<span className="identity-fact"><Icon name="clock"/>{t('Last verified')} {fmtDate(o.profile.last_verified_at)}</span>}</div>
+      </div>
+      <div className="page-actions">{tab!=='face'&&<ButtonLink to="/identity/face" icon="scanFace">{t(o.face_enrolled?'Re-enroll face':'Enroll face')}</ButtonLink>}{!o.mfa_enabled&&<ButtonLink to="/security" variant="outline" icon="key">{t('Set up MFA')}</ButtonLink>}</div>
+    </section>}</ApiState>
+    <Alert>{t('Academic sandbox — synthetic identity records only. AMAP is not connected to the UIDAI biometric database.')}</Alert>
+    <nav className="tabs identity-tabs mt-6" aria-label={t('Digital Identity sections')}>{tabs.map(([to,label,icon])=><Link key={to} to={to} className={pathname===to?'is-active':''} aria-current={pathname===to?'page':undefined}><Icon name={icon}/>{t(label)}</Link>)}</nav>
+    {error&&<div className="mb-5"><Alert type="danger">{error}</Alert></div>}
+    {result&&<div className="mb-6"><Card title={t('Verification completed')}><div className="result-card"><span className="cv-result-icon"><Icon name="checkCircle" size={30}/></span><div className="flex-1"><Details items={[[t('Name'),result.name],[t('Synthetic Aadhaar'),<span className="masked-id">{result.aadhaar}</span>],[t('Provider'),result.provider]]}/></div></div></Card></div>}
+
+    {tab==='history'?<Card title={t('Verification History')} flush><ApiState state={history}><Table rows={history.data||[]} caption={t('Verification history')} empty={<EmptyState icon="clock" title={t('No verification attempts yet')} message={t('Each enrollment and recovery attempt will be listed here with its outcome.')}/>} columns={[{key:'created_at',label:t('Date'),render:r=>fmtDate(r.created_at,true)},{key:'kind',label:t('Method'),render:r=>r.kind[0]+r.kind.slice(1).toLowerCase()},{key:'state',label:t('Outcome'),render:r=><Badge status={r.state}/>},{key:'liveness_passed',label:t('Liveness'),render:r=><LivenessCell row={r}/>},{key:'age_consistency',label:t('Age consistency'),render:r=>String(r.age_consistency||'').replaceAll('_',' ').toLowerCase()}]}/></ApiState></Card>
+    :tab==='privacy'?<div className="dash-grid"><div className="col-5"><Card title={t('Consent & Privacy')}><p>{t('Raw webcam video is never recorded. Captured frames are processed in memory; encrypted embeddings are retained only for enrollment and short-lived verification. You can remove your face template and revoke consent below. Audit events are retained without face images or embeddings.')}</p><p className="mt-4"><Link to="/security">{t('Confirm your password in Security before removing a template.')}</Link></p><Button className="mt-5" variant="danger" icon="trash" onClick={revoke}>{t('Remove template and revoke face consent')}</Button></Card></div><div className="col-7"><Card title={t('Consent records')} flush><ApiState state={consents}><Table rows={consents.data||[]} caption={t('Consent records')} empty={<EmptyState icon="lock" title={t('No consent recorded')} message={t('Consent is requested each time before your camera is used.')}/>} columns={[{key:'type',label:t('Consent'),render:r=>String(r.type).replaceAll('_',' ').toLowerCase().replace(/^\w/,c=>c.toUpperCase())},{key:'policy_version',label:t('Policy')},{key:'accepted_at',label:t('Accepted'),render:r=>fmtDate(r.accepted_at,true)},{key:'revoked_at',label:t('Status'),render:r=><Badge status={r.revoked_at?'REVOKED':'ACTIVE'}>{t(r.revoked_at?'Revoked':'Active')}</Badge>}]}/></ApiState></Card></div></div>
+    :tab==='face'?<div className="dash-grid"><div className="col-8">{enrollment}</div><div className="col-4"><Card title={t('Tips for a smooth check')}><ul className="cv-facts">{tips.map(([icon,title,text])=><li key={title}><Icon name={icon}/><span><b className="block">{t(title)}</b>{t(text)}</span></li>)}</ul><p className="hint mt-5">{t('No usable camera? Request an assisted visit instead.')} <Link to="/identity/appointments">{t('Assisted verification')}</Link></p></Card></div></div>
+    :o&&<div className="dash-grid"><div className="col-7"><Card title={t('Identity overview')}><Details items={[[t('Identity status'),o.profile?.status?<Badge status={o.profile.status}/>:t('Not yet verified')],[t('Synthetic Aadhaar'),o.profile?.masked_identity?<span className="masked-id">{o.profile.masked_identity}</span>:t('Not linked')],[t('Face verification'),t(o.face_enrolled?'Enrolled':'Not enrolled')],[t('Enrolled on'),fmtDate(o.enrolled_at)],[t('MFA'),t(o.mfa_enabled?'Enabled':'Not enabled')],[t('Last verification'),fmtDate(o.profile?.last_verified_at)]]}/><ButtonLink className="mt-6" variant="outline" to="/security" icon="lock">{t('Manage security')}</ButtonLink></Card></div><div className="col-5">{enrollment}</div></div>}
+  </>;
+}

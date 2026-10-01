@@ -1,0 +1,39 @@
+{
+  "name": "amap-government-services-portal",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AMAP integrated React, Express and MySQL academic identity sandbox",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "workspaces": [
+    "react"
+  ],
+  "scripts": {
+    "setup:local": "node scripts/local-db.cjs setup",
+    "db:start": "node scripts/local-db.cjs start",
+    "db:stop": "node scripts/local-db.cjs stop",
+    "db:migrate": "node scripts/migrate.cjs",
+    "start": "node server/index.cjs",
+    "dev": "node scripts/dev.cjs",
+    "dev:backend": "node scripts/local-db.cjs start && node server/index.cjs",
+    "build": "npm --workspace amap-react run build",
+    "preview": "npm --workspace amap-react run preview",
+    "test:react": "npm --workspace amap-react test",
+    "demo": "node scripts/serve.cjs",
+    "test": "node tests/live-api.test.cjs && node tests/live-browser.test.cjs",
+    "test:demo": "node tests/store.test.cjs && node tests/browser.test.cjs",
+    "dev:frontend": "npm --workspace amap-react run dev",
+    "db:migrate:local": "node scripts/migrate-local.cjs",
+    "setup:biometrics": "node scripts/setup-biometrics.cjs",
+    "test:identity": "node --test tests/identity-unit.test.cjs && npm run prepare:test-faces && node tests/identity-api.test.cjs && node tests/identity-model.test.cjs",
+    "seed:identity": "node scripts/seed-identity.cjs",
+    "prepare:test-faces": "node scripts/prepare-test-faces.cjs",
+    "test:portal": "node tests/portal-browser.test.cjs && node tests/security-browser.test.cjs"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mysql2": "^3.24.4",
+    "qrcode": "^1.5.4"
+  }
+}

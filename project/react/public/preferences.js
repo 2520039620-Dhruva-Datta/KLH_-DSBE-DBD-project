@@ -1,0 +1,1 @@
+try{var t=localStorage.getItem('amap.theme');if(t&&t!=='system')document.documentElement.dataset.theme=t;document.documentElement.dataset.text=localStorage.getItem('amap.text')||'normal';document.documentElement.dataset.contrast=localStorage.getItem('amap.contrast')||'normal';}catch(e){}

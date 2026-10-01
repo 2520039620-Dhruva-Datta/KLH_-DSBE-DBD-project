@@ -1,0 +1,7 @@
+import API from '../../data/api.js';
+import useApi from '../../hooks/useApi.js';
+import {ApiState,Badge,Card,EmptyState,PageHead,Table} from '../../components/ui/index.jsx';
+import {useLanguage} from '../../context/LanguageContext.jsx';
+import {fmtDate} from '../../lib/format.js';
+import {LivenessCell} from '../../components/CameraVerification.jsx';
+export default function VerificationHistory(){const {t}=useLanguage(),state=useApi(()=>API.verification('GET','/officer-history'),[]);return <><PageHead eyebrow={t('Officer desk')} title={t('Allowed verification history')} lead={t('Masked outcomes for citizens with applications in your department. No face templates or authentication secrets are available.')}/><Card flush><ApiState state={state}><Table rows={state.data||[]} caption={t('Verification history')} empty={<EmptyState icon="shield" title={t('No verifications to show')} message={t('Outcomes appear here for citizens with applications in your department.')}/>} columns={[{key:'id',label:t('Verification ID')},{key:'citizen_name',label:t('Citizen')},{key:'kind',label:t('Method')},{key:'state',label:t('Outcome'),render:r=><Badge status={r.state}/>},{key:'liveness_passed',label:t('Liveness'),render:r=><LivenessCell row={r}/>},{key:'risk_level',label:t('Risk'),render:r=>String(r.risk_level||'—').toLowerCase()},{key:'created_at',label:t('When'),render:r=>fmtDate(r.created_at,true)}]}/></ApiState></Card></>;}

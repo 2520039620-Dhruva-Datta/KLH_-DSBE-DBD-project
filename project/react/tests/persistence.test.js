@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const memory=new Map();
+globalThis.localStorage={getItem:key=>memory.get(key)||null,setItem:(key,value)=>memory.set(key,String(value)),removeItem:key=>memory.delete(key)};
+test('large baseline stays deterministic and mutations survive delta reconstruction',async()=>{
+  const {default:store}=await import('../src/data/store.js?persist=first');
+  assert.equal(store.raw().applications.length,6006);
+  assert.equal(store.raw().users.filter(u=>u.role==='CITIZEN').length,600);
+  const before=store.application(6006),anchor=store.raw().seeded_at,bytes=memory.get('amap.db.v6').length;
+  assert.ok(bytes<2000,'unchanged baseline should only persist a small manifest');
+  const citizen=store.user(1),application=store.createApplication({user_id:1,service_id:1,subject:'Persisted specimen',form_data:{full_name:'Sample Citizen'}});
+  await new Promise(resolve=>queueMicrotask(resolve));
+  const saved=JSON.parse(memory.get('amap.db.v6'));
+  assert.equal(saved.delta.applications.rows.length,1);
+  const {default:reloaded}=await import('../src/data/store.js?persist=reloaded');
+  assert.equal(reloaded.raw().seeded_at,anchor);
+  assert.deepEqual(reloaded.application(6006),before);
+  assert.equal(reloaded.application(application.id).subject,'Persisted specimen');
+  assert.equal(reloaded.statusLogs(application.id)[0].actor_id,citizen.id);
+  const created=reloaded.saveDepartment({name:'Disposable department',code:'DISP'});
+  await new Promise(resolve=>queueMicrotask(resolve));
+  assert.equal(reloaded.deleteDepartment(created.id),true);
+  await new Promise(resolve=>queueMicrotask(resolve));
+  const {default:again}=await import('../src/data/store.js?persist=again');
+  assert.equal(again.department(created.id),null);
+  assert.equal(again.raw().applications.length,6007);
+});
